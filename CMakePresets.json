@@ -221,8 +221,6 @@
       "displayName": "Windows x64 Release packaging configuration",
       "description": "Packaging build for Windows using Ninja generator",
       "inherits": [
-        "vcpkg-windows-x64",
-        "packaging-base",
         "release-base"
       ]
     },
