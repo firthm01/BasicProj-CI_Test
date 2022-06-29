@@ -1,0 +1,261 @@
+name: Build
+# Run workflow when manually triggered, part of a pull request or on a tag push (release)
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - '*'
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    env:
+      CCACHE_WIN_VERSION: 4.2.1
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_COMPRESS: 'true'
+      CCACHE_COMPRESSLEVEL: '5'
+      CCACHE_MAXSIZE: '500M'
+      CCACHE_BASEDIR: '${{ github.workspace }}'
+      VCPKG_ROOT: ${{ github.workspace }}/submodules/vcpkg
+      VCPKG_CACHE_LOCATION: '${{ github.workspace }}/vcpkg_cache'
+    strategy:
+      matrix:
+        config:
+          - name: "Windows Latest MSVC"
+            os: windows-latest
+            # package: true
+            cmake_preset: "windows-packaging-release"
+            # vcpkg_triplet: x64-windows-static
+            # test: true
+          # - name: "Windows Latest MSVC RelWithDebInfo"
+            # os: windows-latest
+            # package: true
+            # cmake_preset: "windows-packaging-relwithdebinfo"
+            # vcpkg_triplet: x64-windows-static
+            # test: true
+          # - name: "macOS Latest Clang x64"
+            # os: macos-latest
+            # package: true
+            # cmake_preset: "macos-packaging-release"
+            # vcpkg_triplet: x64-osx-10_13
+            # test: true
+          # - name: "macOS Latest Clang arm64"
+            # os: macos-latest
+            # package: true
+            # cmake_preset: "macos-arm64-packaging-release"
+            # vcpkg_triplet: arm64-osx-11_0
+            # test: false
+    steps:
+      - name: 'Checkout repo recursively.'
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: 'Install ninja-build tool.'
+        uses: seanmiddleditch/gha-setup-ninja@v3
+
+      # - name: 'Create vcpkg cache dir.'
+        # run: cmake -E make_directory ${{ env.VCPKG_CACHE_LOCATION }}
+
+      # See https://github.com/lukka/CppBuildTasks-Validation/blob/master/.github/workflows/hosted-pure-workflow.yml
+      # We use cache key from above, possibly redundant due to vcpkg's own hashing, but it doesn't hurt while we're
+      # still using a binary cache per repo/triplet rather than a global package repo.
+      # - name: 'Restore vcpkg and its artifacts.'
+        # uses: actions/cache@v2
+        # with:
+          # path: ${{ env.VCPKG_CACHE_LOCATION }}
+          # key: |
+            # ${{ hashFiles( 'vcpkg.json' ) }}-${{ hashFiles( '.git/modules/submodules/vcpkg/HEAD' )}}--${{ matrix.config.vcpkg_triplet }}-invalidate
+
+      # - name: 'Windows: Install ccache.'
+        # if: matrix.config.os == 'windows-latest'
+        # shell: cmake -P {0}
+        # run: |
+          # set(ccache_url "https://github.com/cristianadam/ccache/releases/download/v$ENV{CCACHE_WIN_VERSION}/Windows.tar.xz")
+          # file(DOWNLOAD "${ccache_url}" ./ccache.tar.xz SHOW_PROGRESS)
+          # execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ./ccache.tar.xz)
+        # working-directory: ${{ runner.workspace }}
+
+      # - name: 'Windows: Add ccache location to PATH.'
+        # if: matrix.config.os == 'windows-latest'
+        # run: |
+          # echo "${{ runner.workspace }}" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      # - name: 'macOS: Install ccache.'
+        # if: matrix.config.os == 'macos-latest'
+        # run: |
+          # brew install ccache
+
+      # - name: 'Prepare ccache timestamp.'
+        # id: ccache_cache_timestamp
+        # shell: cmake -P {0}
+        # run: |
+          # string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
+          # message("::set-output name=timestamp::${current_date}")
+
+      # - name: 'Cache ccache files.'
+        # uses: actions/cache@v2
+        # with:
+          # path: ${{ env.CCACHE_DIR }}
+          # key: ${{ matrix.config.name }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+          # restore-keys: |
+              # ${{ matrix.config.name }}-ccache-
+
+      # - name: 'Zero ccache stats.'
+        # run: ccache -z
+
+      # - name: 'Print ccache config.'
+        # run: ccache -p
+
+      # - name: 'Set install prefix.'
+        # id: cmake_install_prefix
+        # env:
+          # RUNNER_WORKSPACE: ${{ runner.workspace }}
+        # shell: cmake -P {0}
+        # run: |
+          # string(REPLACE " " "_" NAME_NO_SPACES "${{ matrix.config.name }}")
+          # file(TO_CMAKE_PATH "$ENV{RUNNER_WORKSPACE}" RUNNER_WORKSPACE)
+          # set(INSTALL_DIR "${NAME_NO_SPACES}")
+          # file(TO_NATIVE_PATH "${RUNNER_WORKSPACE}/${INSTALL_DIR}" PREFIX)
+          # message("::set-output name=install_prefix::${PREFIX}")
+          # message("::set-output name=install_dir::${INSTALL_DIR}")
+
+      - name: 'Windows: set up developer environment'
+        uses: ilammy/msvc-dev-cmd@v1
+        if: matrix.config.os == 'windows-latest'
+        
+      - name: 'Git Status'
+        run: git status
+        
+      - name: 'Configure with CMake, vcpkg and ccmake.'
+        run: cmake --preset ${{ matrix.config.cmake_preset }}
+        # -DCMAKE_INSTALL_PREFIX="${{ steps.cmake_install_prefix.outputs.install_prefix }}"
+        env:
+          # See https://vcpkg.io/en/docs/users/binarycaching.html for syntax of this variable. We want to clear out
+          # the default locations and both restore from and save to our custom .vcpkg directory.
+          # VCPKG_BINARY_SOURCES: 'clear;files,${{ env.VCPKG_CACHE_LOCATION }},readwrite'
+          # CMAKE_C_COMPILER_LAUNCHER: 'ccache'
+          # CMAKE_CXX_COMPILER_LAUNCHER: 'ccache'
+
+      - name: 'Git Status'
+        run: git status
+
+        # # This is for the windows relwithdebinfo build as otherwise we run out of disk space
+      # - name: 'Clean up vcpkg temporary files.'
+        # run: cmake -E rm -rf "${{ env.VCPKG_ROOT }}/buildtrees" "${{ env.VCPKG_ROOT }}/packages" "${{ env.VCPKG_ROOT }}/downloads"
+
+      - name: 'Build using CMake and Ninja via CMake preset.'
+        run: cmake --build --preset ${{ matrix.config.cmake_preset }}
+        
+      - name: 'Run NSIS'
+        run: makensis example.nsi
+
+      # - name: 'Print ccache stats.'
+        # run: ccache -s
+
+      # - name: 'Run tests.'
+        # if: ${{ matrix.config.test }}
+        # run: ctest --preset '${{ matrix.config.cmake_preset }}'
+
+      # - name: 'Install to output dir.'
+        # if: ${{ matrix.config.package }}
+        # run: |
+          # cmake -E make_directory "${{ steps.cmake_install_prefix.outputs.install_prefix }}"
+          # cmake --build --preset ${{ matrix.config.cmake_preset }} --target install
+
+      # - name: 'macOS: Tar output dir.'
+        # if: ${{ matrix.config.package && matrix.config.os == 'macos-latest' }}
+        # run: tar -cvf ${{ steps.cmake_install_prefix.outputs.install_dir }}.tar -C ${{ steps.cmake_install_prefix.outputs.install_prefix }} .
+                  
+      # - name: 'macOS: Upload Tar as build artifact.'
+        # if: ${{ matrix.config.package && matrix.config.os == 'macos-latest' }}
+        # uses: actions/upload-artifact@v2
+        # with:
+          # name: ${{ steps.cmake_install_prefix.outputs.install_dir }}
+          # path: ${{ steps.cmake_install_prefix.outputs.install_dir }}.tar 
+          
+      # - name: 'Windows: Upload output dir as build artifact.'
+        # if: ${{ matrix.config.package && matrix.config.os == 'windows-latest' }}
+        # uses: actions/upload-artifact@v2
+        # with:
+          # name: ${{ steps.cmake_install_prefix.outputs.install_dir }}
+          # path: ${{ steps.cmake_install_prefix.outputs.install_prefix }}
+
+  # mac_universal_bin:
+    # name: mac_universal_bin
+    # runs-on: macos-latest
+    # needs: build
+
+    # steps:
+      # - uses: actions/download-artifact@v2
+        # with:
+          # name: 'macOS_Latest_Clang_x64'
+          # path: 'macOS_Latest_Clang_x64'
+
+      # - uses: actions/download-artifact@v2
+        # with:
+          # name: 'macOS_Latest_Clang_arm64'
+          # path: 'macOS_Latest_Clang_arm64'
+        
+      # - name: 'un-tar x64'
+        # run: tar -xf macOS_Latest_Clang_x64.tar && rm macOS_Latest_Clang_x64.tar
+        # working-directory: macOS_Latest_Clang_x64
+        
+      # - name: 'un-tar arm64'
+        # run: tar -xf macOS_Latest_Clang_arm64.tar && rm macOS_Latest_Clang_arm64.tar
+        # working-directory: macOS_Latest_Clang_arm64
+        
+      # - name: 'dir listing'
+        # run: ls -R
+
+      # - name: 'build ub'
+        # run: |
+          # intel_dir="macOS_Latest_Clang_x64"
+          # arm_dir="macOS_Latest_Clang_arm64"
+          # ub_dir="macOS_Latest_Clang_universal"
+          
+          # cp -r $intel_dir $ub_dir
+          
+          # function make_ub() {
+            # intel_bin="$1"
+            # arm_bin=$(echo "$intel_bin" | sed "s:$intel_dir:$arm_dir:")
+            # ub_bin=$(echo "$intel_bin" | sed "s:$intel_dir:$ub_dir:")
+            
+            # if [ ! -f "$arm_bin" ]; then
+              # echo "$arm_bin not found"
+              # exit 1
+            # fi
+            
+            # lipo "$intel_bin" "$arm_bin" -create -output "$ub_bin"
+          # }
+          
+          # LIBS=`find $intel_dir -name '*.dylib'`
+          # # note: "! -name '*.*'" excludes files with an extension (auxiliary files)
+          # PLUGINS=`find $intel_dir -path '*vst3/Contents/MacOS/*' ! -name '*.*'`
+          
+          # IFS=$'\n'
+          # for lib in $LIBS; do
+            # echo "Making UB Library from: $lib"
+            # make_ub "$lib"
+          # done
+          
+          # for plugin in $PLUGINS; do
+            # echo "Making UB Plugin from: $plugin"
+            # make_ub "$plugin"
+          # done
+          
+      # - name: 'dir listing'
+        # run: ls -R
+          
+      # - name: 'tar ub'
+        # run: tar -cvf macOS_Latest_Clang_universal.tar -C macOS_Latest_Clang_universal .
+
+      # - uses: actions/upload-artifact@v2
+        # with:
+          # name: 'macOS_Latest_Clang_universal'
+          # path: 'macOS_Latest_Clang_universal.tar'
