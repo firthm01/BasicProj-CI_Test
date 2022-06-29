@@ -153,7 +153,7 @@ jobs:
         run: cmake --build --preset ${{ matrix.config.cmake_preset }}
         
       - name: 'Run NSIS'
-        run: makensis example.nsi
+        run: makensis example1.nsi
 
       # - name: 'Print ccache stats.'
         # run: ccache -s
