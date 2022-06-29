@@ -5,7 +5,7 @@ on:
   pull_request:
   push:
     branches:
-      - 'main'
+      - 'master'
     tags:
       - '*'
 
@@ -135,7 +135,7 @@ jobs:
       - name: 'Configure with CMake, vcpkg and ccmake.'
         run: cmake --preset ${{ matrix.config.cmake_preset }}
         # -DCMAKE_INSTALL_PREFIX="${{ steps.cmake_install_prefix.outputs.install_prefix }}"
-        env:
+        #env:
           # See https://vcpkg.io/en/docs/users/binarycaching.html for syntax of this variable. We want to clear out
           # the default locations and both restore from and save to our custom .vcpkg directory.
           # VCPKG_BINARY_SOURCES: 'clear;files,${{ env.VCPKG_CACHE_LOCATION }},readwrite'
