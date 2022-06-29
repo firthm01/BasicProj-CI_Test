@@ -220,6 +220,7 @@
       "name": "windows-packaging-release",
       "displayName": "Windows x64 Release packaging configuration",
       "description": "Packaging build for Windows using Ninja generator",
+	  "binaryDir": "${sourceDir}/build/${presetName}",
       "inherits": [
         "release-base"
       ]
