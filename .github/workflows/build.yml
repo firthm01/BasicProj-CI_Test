@@ -37,25 +37,28 @@ jobs:
             # cmake_preset: "windows-packaging-relwithdebinfo"
             # vcpkg_triplet: x64-windows-static
             # test: true
-          - name: "macOS Latest Clang x64"
-            os: macos-latest
-            # package: true
-            cmake_preset: "macos-packaging-release"
-            # vcpkg_triplet: x64-osx-10_13
-            # test: true
-          - name: "macOS Latest Clang arm64"
-            os: macos-latest
-            # package: true
-            cmake_preset: "macos-arm64-packaging-release"
-            # vcpkg_triplet: arm64-osx-11_0
-            # test: false
+          # - name: "macOS Latest Clang x64"
+            # os: macos-latest
+            # # package: true
+            # cmake_preset: "macos-packaging-release"
+            # # vcpkg_triplet: x64-osx-10_13
+            # # test: true
+          # - name: "macOS Latest Clang arm64"
+            # os: macos-latest
+            # # package: true
+            # cmake_preset: "macos-arm64-packaging-release"
+            # # vcpkg_triplet: arm64-osx-11_0
+            # # test: false
     steps:
       - name: 'Checkout repo recursively.'
         uses: actions/checkout@v2
         with:
           submodules: recursive
           fetch-depth: 0
-
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+          
       # - name: 'Install ninja-build tool.'
         # uses: seanmiddleditch/gha-setup-ninja@v3
       - name: install qt6
