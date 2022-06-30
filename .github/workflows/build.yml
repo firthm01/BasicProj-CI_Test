@@ -59,9 +59,9 @@ jobs:
       # - name: 'Install ninja-build tool.'
         # uses: seanmiddleditch/gha-setup-ninja@v3
         
-    - name: 'Install makensis (homebrew)'
-      run: brew update && brew install makensis
-      if: ${{ matrix.os == 'macos-latest' }}
+      - name: 'Install makensis (homebrew)'
+        run: brew update && brew install makensis
+        if: ${{ matrix.os == 'macos-latest' }}
       
       # - name: 'Create vcpkg cache dir.'
         # run: cmake -E make_directory ${{ env.VCPKG_CACHE_LOCATION }}
