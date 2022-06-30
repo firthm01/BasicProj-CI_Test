@@ -37,10 +37,10 @@ jobs:
             # cmake_preset: "windows-packaging-relwithdebinfo"
             # vcpkg_triplet: x64-windows-static
             # test: true
-          # - name: "macOS Latest Clang x64"
-            # os: macos-latest
+          - name: "macOS Latest Clang x64"
+            os: macos-latest
             # package: true
-            # cmake_preset: "macos-packaging-release"
+            cmake_preset: "macos-packaging-release"
             # vcpkg_triplet: x64-osx-10_13
             # test: true
           # - name: "macOS Latest Clang arm64"
@@ -56,9 +56,13 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: 'Install ninja-build tool.'
-        uses: seanmiddleditch/gha-setup-ninja@v3
-
+      # - name: 'Install ninja-build tool.'
+        # uses: seanmiddleditch/gha-setup-ninja@v3
+        
+    - name: 'Install makensis (homebrew)'
+      run: brew update && brew install makensis
+      if: ${{ matrix.os == 'macos-latest' }}
+      
       # - name: 'Create vcpkg cache dir.'
         # run: cmake -E make_directory ${{ env.VCPKG_CACHE_LOCATION }}
 

@@ -240,9 +240,8 @@
       "name": "macos-packaging-release",
       "displayName": "macOS x64 packaging configuration",
       "description": "Packaging build for macOS 10.13+ using Ninja generator",
+	  "binaryDir": "${sourceDir}/build/${presetName}",
       "inherits": [
-        "vcpkg-macos-x64",
-        "packaging-base",
         "release-base"
       ]
     },
