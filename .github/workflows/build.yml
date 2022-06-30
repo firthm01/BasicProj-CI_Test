@@ -58,7 +58,12 @@ jobs:
 
       # - name: 'Install ninja-build tool.'
         # uses: seanmiddleditch/gha-setup-ninja@v3
-        
+      - name: install qt6
+        run: |
+          pip install aqtinstall
+          python3 -m aqt install-tool -O ${{ github.workspace }}/Qt/ windows desktop tools_ifw
+          echo "${{ github.workspace }}/Qt/Tools/QtInstallerFramework/4.1/bin/" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          
       - name: 'MacOS: Install makensis (homebrew)'
         run: brew update && brew install makensis
         if: ${{ matrix.config.os == 'macos-latest' }}
